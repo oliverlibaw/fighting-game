@@ -1,0 +1,12 @@
+# Constraints to avoid common dependency conflicts for this project
+# Adjust versions if you need newer features; these are conservative pins.
+# Allow numpy 1.x (any wheel compatible with the platform) but avoid numpy 2.x
+numpy>=1.24,<2.0.0
+protobuf==4.23.4
+pydantic==1.11.7
+requests==2.31.0
+python-json-logger==2.0.4
+# pillow pin removed to let pip select a compatible wheel for macOS/arch
+fsspec==2023.4.0
+ml-dtypes==0.2.0
+anyio==3.7.1
