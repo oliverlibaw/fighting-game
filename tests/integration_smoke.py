@@ -1,7 +1,8 @@
 import os
 import io
 from PIL import Image, ImageDraw
-from app import app
+from app import create_app
+app = create_app({'TESTING': True})
 import sprite_engine
 import image_processor
 
@@ -40,15 +41,7 @@ def fake_generate_action(image_path, action_type):
     return output_path
 
 sprite_engine.generate_action = fake_generate_action
-# Also override the reference imported into the app module (app imported generate_action at import time)
-app.generate_action = fake_generate_action
-
-# Diagnostics: show which function objects are bound
-print('sprite_engine.generate_action ->', sprite_engine.generate_action)
-print('app.generate_action ->', app.generate_action)
-print('app globals contains generate_action?', 'generate_action' in app.__dict__)
-print('app.__dict__["generate_action"] ->', app.__dict__.get('generate_action'))
-print('are they same object?', app.generate_action is sprite_engine.generate_action)
+print('Patched sprite_engine.generate_action for test ->', sprite_engine.generate_action)
 
 # Remove previous output dir if exists
 out_frames_dir = os.path.join(result_root, 'punch')
@@ -56,34 +49,6 @@ if os.path.exists(out_frames_dir):
     for f in os.listdir(out_frames_dir):
         os.remove(os.path.join(out_frames_dir, f))
 
-# Replace the Flask view with a test-safe handler that uses our fake_generate_action
-from flask import request, redirect, render_template
-from werkzeug.utils import secure_filename
-
-def fake_process():
-    if 'file' not in request.files:
-        return redirect(request.url)
-    file = request.files['file']
-    if file.filename == '':
-        return redirect(request.url)
-    if file:
-        filename = secure_filename(file.filename)
-        upload_path = os.path.join(upload_dir, filename)
-        file.save(upload_path)
-
-        action_type = 'punch'
-        strip_path = fake_generate_action(upload_path, action_type)
-
-        if strip_path:
-            output_dir = os.path.join(result_root, action_type)
-            frames = image_processor.process_sprite_strip(strip_path, output_dir)
-            frames = [os.path.join('results', os.path.basename(output_dir), os.path.basename(f)) for f in frames]
-            return render_template('results.html', frames=frames)
-        else:
-            return "Error generating sprite sheet."
-
-# Override the registered view function
-app.view_functions['process'] = fake_process
 
 # Run POST to the endpoint
 with app.test_client() as client:
